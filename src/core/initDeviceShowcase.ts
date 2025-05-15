@@ -63,6 +63,18 @@ export async function initDeviceShowcase(
     const model = await loader.loadAsync(modelPath);
     console.log('Model loaded successfully:', model);
     
+    // Log model structure to find screen mesh
+    console.log('Model structure:');
+    model.scene.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        console.log('Found mesh:', {
+          name: child.name,
+          material: child.material,
+          geometry: child.geometry
+        });
+      }
+    });
+    
     // Calculate model aspect ratio
     const box = new THREE.Box3().setFromObject(model.scene);
     const size = box.getSize(new THREE.Vector3());
@@ -102,10 +114,9 @@ export async function initDeviceShowcase(
       // Reference FOV (45 degrees) - this gives us a good base size
       const refFov = 45;
       const refFovRad = (refFov * Math.PI) / 180;
-      const currentFovRad = (fov * Math.PI) / 180;
       
       // Calculate base distance at reference FOV
-      const baseDistance = (modelSize / 2) / Math.tan(refFovRad / 2) * 4; // Multiply by 4 to start further back
+      const baseDistance = (modelSize / 2) / Math.tan(refFovRad / 2) * 4.5; // Multiply by 4 to start further back
       
       // For dolly zoom, we need to move the camera in proportion to the FOV change
       // When FOV increases, we need to move closer to maintain size
