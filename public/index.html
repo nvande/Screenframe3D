@@ -4,17 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Screenframe3D Demo</title>
+    <!-- Add Three.js and GLTFLoader -->
+    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+            "three/examples/jsm/loaders/GLTFLoader": "https://unpkg.com/three@0.162.0/examples/jsm/loaders/GLTFLoader.js"
+        }
+    }
+    </script>
     <style>
         body {
             margin: 0;
             padding: 20px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: #f0f0f0;
         }
         .demo-section {
             margin-bottom: 40px;
             padding: 20px;
-            border: 1px solid #eee;
+            border: 1px solid #ddd;
             border-radius: 8px;
+            background: white;
         }
         h2 {
             margin-top: 0;
@@ -23,44 +35,174 @@
             width: 100%;
             height: 500px;
             margin: 20px 0;
+            border: 2px dashed #666;
+            border-radius: 4px;
+            resize: both;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+        .device-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain;
+        }
+        .device-container::after {
+            content: '↔ Drag to resize';
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 4px;
+        }
+        .controls label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        .controls input[type="range"] {
+            width: 200px;
+            margin-right: 10px;
+        }
+        .controls span {
+            font-family: monospace;
+            color: #666;
         }
     </style>
 </head>
 <body>
     <div class="demo-section">
         <h2>Vanilla JavaScript Demo</h2>
+        <div class="controls">
+            <label>
+                Tilt Effect:
+                <input type="checkbox" id="tilt-enabled" checked>
+            </label>
+            <label>
+                Field of View:
+                <input type="range" id="fov" min="30" max="120" step="1" value="75">
+                <span id="fov-value">75°</span>
+            </label>
+            <label>
+                Spring Effect:
+                <input type="checkbox" id="spring-enabled" checked>
+            </label>
+            <label>
+                Spring Strength:
+                <input type="range" id="spring-strength" min="0.01" max="0.2" step="0.01" value="0.05">
+                <span id="spring-strength-value">0.05</span>
+            </label>
+            <label>
+                Spring Damping:
+                <input type="range" id="spring-damping" min="0.5" max="0.99" step="0.01" value="0.9">
+                <span id="spring-damping-value">0.9</span>
+            </label>
+            <label>
+                RotX:
+                <input type="range" id="tilt-x" min="-0.5" max="0.5" step="0.01" value="0">
+                <span id="tilt-x-value">0</span>
+            </label>
+            <label>
+                RotY:
+                <input type="range" id="tilt-y" min="-0.5" max="0.5" step="0.01" value="0">
+                <span id="tilt-y-value">0</span>
+            </label>
+        </div>
         <div id="vanilla-container" class="device-container"></div>
-    </div>
-
-    <div class="demo-section">
-        <h2>React Demo</h2>
-        <div id="react-container" class="device-container"></div>
     </div>
 
     <script type="module">
         // Vanilla JS demo
-        import { initDeviceShowcase } from '../dist/index.js';
+        import { initDeviceShowcase } from '/src/index.ts';
 
-        initDeviceShowcase({
+        const instance = await initDeviceShowcase({
             container: document.getElementById('vanilla-container'),
             screenshot: 'https://picsum.photos/800/1600',
-            device: 'iphone14',
-            scrollTilt: true
+            device: 'apple/iphone-14-pro',
+            scrollTilt: true,
+            spring: {
+                enabled: true,
+                strength: 0.05,
+                damping: 0.9,
+                mass: 2
+            },
+            baseTilt: {
+                x: 0,
+                y: 0
+            },
+            fov: 75,
+            tiltEnabled: true
         });
 
-        // React demo
-        import React from 'react';
-        import { createRoot } from 'react-dom/client';
-        import { DeviceShowcase } from '../dist/react/index.js';
+        // Controls
+        const tiltEnabled = document.getElementById('tilt-enabled');
+        const fov = document.getElementById('fov');
+        const springEnabled = document.getElementById('spring-enabled');
+        const springStrength = document.getElementById('spring-strength');
+        const springDamping = document.getElementById('spring-damping');
+        const tiltX = document.getElementById('tilt-x');
+        const tiltY = document.getElementById('tilt-y');
 
-        const root = createRoot(document.getElementById('react-container'));
-        root.render(
-            React.createElement(DeviceShowcase, {
-                screenshot: 'https://picsum.photos/800/1600',
-                device: 'iphone14',
-                scrollTilt: true
-            })
-        );
+        tiltEnabled.addEventListener('change', () => {
+            instance.setTiltEnabled(tiltEnabled.checked);
+        });
+
+        fov.addEventListener('input', () => {
+            const value = parseInt(fov.value);
+            document.getElementById('fov-value').textContent = `${value}°`;
+            instance.setFOV(value);
+        });
+
+        springEnabled.addEventListener('change', () => {
+            instance.setSpringConfig({
+                enabled: springEnabled.checked,
+                strength: parseFloat(springStrength.value),
+                damping: parseFloat(springDamping.value)
+            });
+        });
+
+        springStrength.addEventListener('input', () => {
+            document.getElementById('spring-strength-value').textContent = springStrength.value;
+            instance.setSpringConfig({
+                enabled: springEnabled.checked,
+                strength: parseFloat(springStrength.value),
+                damping: parseFloat(springDamping.value)
+            });
+        });
+
+        springDamping.addEventListener('input', () => {
+            document.getElementById('spring-damping-value').textContent = springDamping.value;
+            instance.setSpringConfig({
+                enabled: springEnabled.checked,
+                strength: parseFloat(springStrength.value),
+                damping: parseFloat(springDamping.value)
+            });
+        });
+
+        tiltX.addEventListener('input', () => {
+            document.getElementById('tilt-x-value').textContent = tiltX.value;
+            instance.setBaseTilt({
+                x: parseFloat(tiltX.value),
+                y: parseFloat(tiltY.value)
+            });
+        });
+
+        tiltY.addEventListener('input', () => {
+            document.getElementById('tilt-y-value').textContent = tiltY.value;
+            instance.setBaseTilt({
+                x: parseFloat(tiltX.value),
+                y: parseFloat(tiltY.value)
+            });
+        });
     </script>
 </body>
 </html> 

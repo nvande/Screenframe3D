@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { initDeviceShowcase, DeviceShowcaseInstance } from '../core/initDeviceShowcase';
-import { DeviceModel } from '../core/types';
+import { DeviceModelId } from '../core/types';
 
 export interface DeviceShowcaseProps {
   screenshot: string;
-  device: DeviceModel;
+  device: DeviceModelId;
   scrollTilt?: boolean;
   fallbackImage?: string;
   fallbackCondition?: () => boolean;
