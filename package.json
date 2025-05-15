@@ -1,0 +1,50 @@
+{
+  "name": "screenframe3d",
+  "version": "0.1.0",
+  "description": "A lightweight, framework-agnostic JavaScript library for showcasing app screenshots in 3D device mockups",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "test": "jest"
+  },
+  "keywords": [
+    "3d",
+    "device-mockup",
+    "three.js",
+    "react",
+    "screenshot",
+    "product-showcase"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.162.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/three": "^0.162.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.33.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^3.2.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0"
+  }
+} 
