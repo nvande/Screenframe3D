@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Screenframe — Your product, on a real device</title>
+  <script>
+    window.__screenframeLook = {
+      screenshot: '/screenshots/screenframe-app.png',
+      device: 'apple/iphone-12-pro',
+      fov: 48,
+      zoom: 1.8,
+      tilt: { x: 0.12, y: -0.38, z: -0.06 }
+    };
+  </script>
+  <script src="./posters/boot.js"></script>
+  <link rel="preload" as="fetch" href="./env/greenwich_park_1k.hdr" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #10100e;
+      --bg-2: #171612;
+      --fg: #f3efe6;
+      --muted: #9b9588;
+      --line: rgba(243, 239, 230, 0.12);
+      --accent: #e4ff3d;
+      --accent-ink: #14140c;
+      --coral: #ff6a3d;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--fg);
+      background: var(--bg);
+      font-family: Figtree, system-ui, sans-serif;
+      line-height: 1.5;
+    }
+
+    a { color: inherit; }
+
+    .wrap {
+      width: min(1280px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      display: grid;
+      place-items: center;
+      font-family: "Instrument Serif", serif;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 22px;
+      align-items: center;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .nav-links a { text-decoration: none; }
+    .nav-links a:hover { color: var(--fg); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font: inherit;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .btn-accent {
+      background: var(--accent);
+      color: var(--accent-ink);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--fg);
+      border: 1px solid var(--line);
+    }
+
+      .hero {
+      display: grid;
+      grid-template-columns: minmax(min(100%, 280px), 0.88fr) minmax(240px, 1.12fr);
+      gap: 32px;
+      align-items: center;
+      padding: 48px 0 24px;
+      min-height: calc(100vh - 90px);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-family: "Instrument Serif", serif;
+      font-weight: 400;
+      font-size: clamp(44px, 6vw, 76px);
+      line-height: 0.92;
+      letter-spacing: -0.03em;
+      margin: 0 0 22px;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .lede {
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 460px;
+      margin: 0 0 32px;
+    }
+
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .fine {
+      margin-top: 18px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      height: min(84vh, 840px);
+      min-height: 560px;
+      margin-right: -12px;
+    }
+
+    .stage::before {
+      content: "";
+      position: absolute;
+      inset: 12% 10% 8%;
+      background: radial-gradient(circle, rgba(228, 255, 61, 0.16), transparent 62%);
+      filter: blur(18px);
+      pointer-events: none;
+    }
+
+    .screenframe3d-poster {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+      z-index: 0;
+      transition: opacity 320ms ease;
+    }
+
+    #hero-device {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .band {
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 18px 0;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .band span { margin-right: 48px; }
+    .band b { color: var(--fg); font-weight: 600; }
+
+    .section { padding: 96px 0; }
+
+    h2 {
+      font-family: "Instrument Serif", serif;
+      font-weight: 400;
+      font-size: clamp(32px, 4vw, 48px);
+      letter-spacing: -0.03em;
+      margin: 0 0 12px;
+    }
+
+    .section-kicker {
+      color: var(--muted);
+      max-width: 540px;
+      margin: 0 0 48px;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 24px;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      letter-spacing: -0.03em;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .index {
+      font-family: "Instrument Serif", serif;
+      color: var(--accent);
+      font-size: 22px;
+      display: block;
+      margin-bottom: 18px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 40px;
+      align-items: start;
+    }
+
+    pre {
+      margin: 0;
+      background: #0a0a08;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 24px;
+      overflow: auto;
+      font: 13px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: #d9d3c5;
+    }
+
+    .kw { color: var(--coral); }
+    .fn { color: var(--accent); }
+    .str { color: #9ad4ff; }
+
+    .note {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-left: 3px solid var(--accent);
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 28px 0 48px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    footer a { color: var(--fg); }
+
+    @media (max-width: 860px) {
+      .hero, .features, .split, footer { grid-template-columns: 1fr; }
+      .nav-links a:not(.btn) { display: none; }
+      .hero {
+        padding-top: 28px;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+      }
+      .stage {
+        order: -1;
+        width: 100%;
+        height: min(70vh, 640px);
+        min-height: 420px;
+        margin-right: 0;
+      }
+      h1 {
+        font-size: clamp(36px, 11vw, 56px);
+      }
+    }
+  </style>
+  <script type="module" crossorigin src="/Screenframe3D/assets/main-0fab9ba6.js"></script>
+  <link rel="modulepreload" crossorigin href="/Screenframe3D/assets/initDeviceShowcase-92af8a1c.js">
+</head>
+<body>
+  <div class="wrap">
+    <nav>
+      <a class="logo" href="./">
+        <span class="mark">S3D</span>
+        Screenframe3D
+      </a>
+      <div class="nav-links">
+        <a href="#product">Product</a>
+        <a href="#how">How it works</a>
+        <a href="./playground.html">Playground</a>
+        <a class="btn btn-accent" href="#how">Get the snippet</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div>
+        <div class="eyebrow">New · Device mockups, live</div>
+        <h1>Your app,<br>on a <em>real</em> phone.</h1>
+        <p class="lede">
+          Screenframe drops a cinematic 3D device into any page and puts your screenshot on the glass.
+          Move the mouse. Scroll a little. It feels like product photography that can update itself.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-accent" href="#how">See how it’s done</a>
+          <a class="btn btn-ghost" href="./playground.html">Open the playground</a>
+        </div>
+        <p class="fine">This landing page is the demo. The phone is Screenframe3D, running live in this tab.</p>
+      </div>
+      <div class="stage">
+        <div id="hero-device">
+          <img
+            class="screenframe3d-poster"
+            alt=""
+            draggable="false"
+            decoding="async"
+            fetchpriority="high"
+          >
+          <script>
+            (function () {
+              var img = document.querySelector('#hero-device .screenframe3d-poster');
+              var src = window.screenframeMatchPoster && window.screenframeMatchPoster(window.__screenframeLook);
+              if (img && src) img.src = src;
+            })();
+          </script>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="band">
+    <span><b>Swap the screen</b> in one call</span>
+    <span><b>Mouse tilt</b> with spring physics</span>
+    <span><b>HDRI lighting</b> on glass and metal</span>
+    <span><b>Vanilla JS</b> or a React wrapper</span>
+    <span><b>Swap the screen</b> in one call</span>
+    <span><b>Mouse tilt</b> with spring physics</span>
+    <span><b>HDRI lighting</b> on glass and metal</span>
+  </div>
+
+  <div class="wrap">
+    <section class="section" id="product">
+      <h2>Built for launch pages, not galleries.</h2>
+      <p class="section-kicker">
+        Static PNGs of phones go stale the moment the UI changes. Screenframe keeps the device, and lets the screen keep moving.
+      </p>
+      <div class="features">
+        <article class="card">
+          <span class="index">01</span>
+          <h3>A real device, not a bezel PNG</h3>
+          <p>The iPhone is an actual GLB, with glass, metal, and an environment map. Tilt it and the highlights travel.</p>
+        </article>
+        <article class="card">
+          <span class="index">02</span>
+          <h3>Your screenshot, on the glass</h3>
+          <p>Point it at an image and Screenframe composites it onto the display — corners, island, and all.</p>
+        </article>
+        <article class="card">
+          <span class="index">03</span>
+          <h3>Feels expensive in a weekend</h3>
+          <p>One container, one init call. No film crew, no Cinema 4D export, no “we’ll reshoot it next quarter.”</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="how">
+      <div class="split">
+        <div>
+          <h2>The “app” is the library.</h2>
+          <p class="section-kicker">
+            This page is dressed like a startup because that’s the job: make a product feel inevitable.
+            Underneath, it’s a few lines of Screenframe3D.
+          </p>
+          <p class="note">
+            <code>/posters/boot.js</code> preloads every captured still, then the page picks the one whose name matches this screenshot and device.
+          </p>
+        </div>
+        <pre><span class="kw">import</span> { <span class="fn">DeviceShowcase</span> } from <span class="str">'screenframe3d/react'</span>
+
+&lt;<span class="fn">DeviceShowcase</span>
+  screenshot=<span class="str">"/screenshot.png"</span>
+  device=<span class="str">"apple/iphone-5s"</span>
+  zoom={<span class="str">1.8</span>}
+  baseTilt={{ x: <span class="str">0.12</span>, y: <span class="str">-0.38</span>, z: <span class="str">-0.06</span> }}
+/&gt;
+
+<span class="kw">import</span> { <span class="fn">screenframe</span> } from <span class="str">'screenframe3d/vite'</span>
+<span class="kw">export default</span> { plugins: [<span class="fn">screenframe</span>()] }</pre>
+      </div>
+    </section>
+
+    <footer>
+      <div>Screenframe3D · a device mockup library pretending, briefly, to be a company.</div>
+      <div><a href="./playground.html">Playground with knobs</a></div>
+    </footer>
+  </div>
+
+  
+</body>
+</html>
