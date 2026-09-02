@@ -1,5 +1,7 @@
 # Screenframe3D
 
+**[Live demo](https://nvande.github.io/Screenframe3D/)** — cinematic 3D phones with your screenshot on the glass.
+
 **Screenframe3D** is a lightweight, framework-agnostic JavaScript library that lets you showcase app screenshots inside beautiful, interactive 3D device mockups. Perfect for product landing pages, portfolios, and live demos. Includes scroll-based tilt animation and smart fallbacks for low-end devices.
 
 ---

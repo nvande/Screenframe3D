@@ -42,11 +42,6 @@
             background: rgba(255, 255, 255, 0.1);
             position: relative;
         }
-        .device-container canvas {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: contain;
-        }
         .device-container::after {
             content: '↔ Drag to resize';
             position: absolute;
@@ -82,6 +77,10 @@
 <body>
     <div class="demo-section">
         <h2>Vanilla JavaScript Demo</h2>
+        <p style="margin-top:-8px;color:#666;font-size:14px;">
+            Playground for knobs.
+            <a href="./">Open the fake launch page →</a>
+        </p>
         <div class="controls">
             <label>
                 Tilt Effect:
@@ -108,26 +107,32 @@
             </label>
             <label>
                 RotX:
-                <input type="range" id="tilt-x" min="-0.5" max="0.5" step="0.01" value="0">
+                <input type="range" id="tilt-x" min="-2" max="2" step="0.01" value="0">
                 <span id="tilt-x-value">0</span>
             </label>
             <label>
                 RotY:
-                <input type="range" id="tilt-y" min="-0.5" max="0.5" step="0.01" value="0">
+                <input type="range" id="tilt-y" min="-2" max="2" step="0.01" value="0">
                 <span id="tilt-y-value">0</span>
+            </label>
+            <label>
+                RotZ:
+                <input type="range" id="tilt-z" min="-2" max="2" step="0.01" value="0">
+                <span id="tilt-z-value">0</span>
             </label>
         </div>
         <div id="vanilla-container" class="device-container"></div>
     </div>
 
     <script type="module">
-        // Vanilla JS demo
-        import { initDeviceShowcase } from '/src/index.ts';
+        import { initDeviceShowcase } from './src/index.ts';
 
+        async function main() {
         const instance = await initDeviceShowcase({
             container: document.getElementById('vanilla-container'),
-            screenshot: 'https://picsum.photos/800/1600',
+            screenshot: '/screenshots/sample-screenshot.png',
             device: 'apple/iphone-14-pro',
+            publicBase: import.meta.env.BASE_URL,
             scrollTilt: true,
             spring: {
                 enabled: true,
@@ -137,7 +142,8 @@
             },
             baseTilt: {
                 x: 0,
-                y: 0
+                y: 0,
+                z: 0
             },
             fov: 75,
             tiltEnabled: true
@@ -151,6 +157,7 @@
         const springDamping = document.getElementById('spring-damping');
         const tiltX = document.getElementById('tilt-x');
         const tiltY = document.getElementById('tilt-y');
+        const tiltZ = document.getElementById('tilt-z');
 
         tiltEnabled.addEventListener('change', () => {
             instance.setTiltEnabled(tiltEnabled.checked);
@@ -192,7 +199,8 @@
             document.getElementById('tilt-x-value').textContent = tiltX.value;
             instance.setBaseTilt({
                 x: parseFloat(tiltX.value),
-                y: parseFloat(tiltY.value)
+                y: parseFloat(tiltY.value),
+                z: parseFloat(tiltZ.value)
             });
         });
 
@@ -200,9 +208,22 @@
             document.getElementById('tilt-y-value').textContent = tiltY.value;
             instance.setBaseTilt({
                 x: parseFloat(tiltX.value),
-                y: parseFloat(tiltY.value)
+                y: parseFloat(tiltY.value),
+                z: parseFloat(tiltZ.value)
             });
         });
+
+        tiltZ.addEventListener('input', () => {
+            document.getElementById('tilt-z-value').textContent = tiltZ.value;
+            instance.setBaseTilt({
+                x: parseFloat(tiltX.value),
+                y: parseFloat(tiltY.value),
+                z: parseFloat(tiltZ.value)
+            });
+        });
+        }
+
+        main();
     </script>
 </body>
 </html> 

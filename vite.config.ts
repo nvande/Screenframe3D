@@ -1,30 +1,26 @@
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { screenframe } from './src/vite/plugin';
+
+const rootDir = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  plugins: [react()],
+  base: process.env.VITE_BASE || '/',
+  plugins: [react(), screenframe()],
   server: {
     port: 3000,
-    open: '/public/index.html'
+    open: '/'
   },
   build: {
-    outDir: 'dist',
-    lib: {
-      entry: {
-        index: 'src/index.ts',
-        react: 'src/react/index.ts'
-      },
-      formats: ['es', 'cjs']
-    },
+    outDir: 'dist-pages',
+    emptyOutDir: true,
     rollupOptions: {
-      external: ['react', 'react-dom', 'three'],
-      output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
-          three: 'THREE'
-        }
-      }
-    }
-  }
-}); 
+      input: {
+        main: resolve(rootDir, 'index.html'),
+        playground: resolve(rootDir, 'playground.html'),
+      },
+    },
+  },
+});

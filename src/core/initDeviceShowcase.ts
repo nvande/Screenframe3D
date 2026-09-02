@@ -1,6 +1,28 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DeviceShowcaseOptions, DeviceShowcaseInstance, SpringConfig } from './types';
+import {
+  createScreenCompositor,
+  findScreenMaterial,
+  loadImage,
+  type ScreenCompositor,
+} from './applyScreenTexture';
+import { syncDeviceTextures } from './deviceTextures';
+import {
+  DEFAULT_ENVIRONMENT_URL,
+  applyEnvironmentMap,
+  prepareRendererForIBL,
+} from './environment';
+import {
+  captureRendererFrame,
+  mountPoster,
+  persistPosterToDevServer,
+  posterCacheKey,
+  posterFileName,
+  resolvePosterSrc,
+  setCachedPoster,
+} from './poster';
+import { publicUrl, setPublicBase } from './assets';
 
 export type { DeviceShowcaseInstance };
 
@@ -15,10 +37,24 @@ export async function initDeviceShowcase(
     fallbackImage,
     fallbackCondition = () => false,
     spring = { enabled: true, strength: 0.05, damping: 0.9, mass: 2 },
-    baseTilt = { x: 0, y: 0 },
+    baseTilt = { x: 0, y: 0, z: 0 },
     fov = 45,
-    tiltEnabled: initialTiltEnabled = true
+    tiltEnabled: initialTiltEnabled = true,
+    zoom = 1,
+    environment = DEFAULT_ENVIRONMENT_URL,
+    publicBase,
+    poster,
+    cachePoster = true,
+    cacheDeviceTextures = true,
+    onPosterCapture,
+    onReady
   } = options;
+
+  setPublicBase(publicBase ?? '/');
+
+  const screenshotUrl = publicUrl(screenshot);
+  const environmentUrl = publicUrl(environment);
+  const fallbackUrl = fallbackImage ? publicUrl(fallbackImage) : screenshotUrl;
 
   let tiltEnabled = initialTiltEnabled;
 
@@ -28,18 +64,19 @@ export async function initDeviceShowcase(
   if (fallbackCondition()) {
     console.log('Using fallback mode');
     const img = document.createElement('img');
-    img.src = fallbackImage || screenshot;
+    img.src = fallbackUrl;
     img.style.width = '100%';
     img.style.height = '100%';
     img.style.objectFit = 'contain';
     container.appendChild(img);
+    onReady?.();
 
     return {
       destroy: () => {
         container.removeChild(img);
       },
       updateScreenshot: (url: string) => {
-        img.src = url;
+        img.src = publicUrl(url);
       },
       setScrollTilt: () => {},
       setSpringConfig: () => {},
@@ -49,6 +86,33 @@ export async function initDeviceShowcase(
     };
   }
 
+  const cacheKey = posterCacheKey({
+    device,
+    screenshot,
+    fov,
+    zoom,
+    tilt: baseTilt,
+    environment,
+  });
+  let posterEl: HTMLImageElement | null = null;
+  let createdPoster = false;
+  const existingPoster = container.querySelector<HTMLImageElement>('.screenframe3d-poster');
+  const posterSrc = resolvePosterSrc(poster, {
+    device,
+    screenshot,
+    fov,
+    zoom,
+    tilt: baseTilt,
+    environment,
+  });
+  if (existingPoster) {
+    posterEl = existingPoster;
+    if (posterSrc) existingPoster.src = posterSrc;
+  } else if (posterSrc) {
+    posterEl = mountPoster(container, posterSrc);
+    createdPoster = true;
+  }
+
   // Initialize Three.js scene
   console.log('Initializing Three.js scene');
   const scene = new THREE.Scene();
@@ -56,7 +120,7 @@ export async function initDeviceShowcase(
   // Load device model first to get its aspect ratio
   console.log('Loading device model:', device);
   const loader = new GLTFLoader();
-  const modelPath = `/public/models/${device}.glb`;
+  const modelPath = publicUrl(`models/${device}.glb`);
   console.log('Model path:', modelPath);
   
   try {
@@ -79,58 +143,66 @@ export async function initDeviceShowcase(
     const box = new THREE.Box3().setFromObject(model.scene);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
-    const modelAspect = size.x / size.y;
     
     // Initialize camera with model's aspect ratio
     const camera = new THREE.PerspectiveCamera(
       fov,
-      modelAspect,
+      Math.max(container.clientWidth, 1) / Math.max(container.clientHeight, 1),
       0.1,
       1000
     );
     
     const renderer = new THREE.WebGLRenderer({ 
       antialias: true,
-      alpha: true
+      alpha: true,
+      preserveDrawingBuffer: true
     });
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setSize(
+      Math.max(container.clientWidth, 1),
+      Math.max(container.clientHeight, 1)
+    );
+    prepareRendererForIBL(renderer);
     
     // Function to calculate optimal scale and position
     const calculateOptimalFit = () => {
-      const containerWidth = container.clientWidth;
-      const containerHeight = container.clientHeight;
-      const containerAspect = containerWidth / containerHeight;
-      
-      // Calculate scale to fit the container while maintaining aspect ratio
-      const scale = containerAspect > modelAspect
-        ? containerHeight / size.y * 0.15
-        : containerWidth / size.x * 0.15;
-      
-      // Calculate the model size after scaling
+      const containerWidth = Math.max(container.clientWidth, 1);
+      const containerHeight = Math.max(container.clientHeight, 1);
+      const scale =
+        Math.min(containerHeight / size.y, containerWidth / size.x) * 0.15;
       const modelSize = Math.max(size.x, size.y) * scale;
-      
-      // Reference FOV (45 degrees) - this gives us a good base size
       const refFov = 45;
       const refFovRad = (refFov * Math.PI) / 180;
-      
-      // Calculate base distance at reference FOV
-      const baseDistance = (modelSize / 2) / Math.tan(refFovRad / 2) * 4.5; // Multiply by 4 to start further back
-      
-      // For dolly zoom, we need to move the camera in proportion to the FOV change
-      // When FOV increases, we need to move closer to maintain size
-      // Using a stronger power relationship for more dramatic movement
-      const distance = baseDistance * Math.pow(refFov / fov, 2.5) * 0.5;
-      
+      const baseDistance = (modelSize / 2) / Math.tan(refFovRad / 2) * 4.5;
+      const distance = baseDistance * Math.pow(refFov / fov, 2.5) * 0.5 / Math.max(zoom, 0.1);
       return { scale, distance };
+    };
+
+    const applyFit = () => {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      if (width < 2 || height < 2) return false;
+      const { scale, distance } = calculateOptimalFit();
+      pivot.scale.setScalar(scale);
+      camera.position.z = distance;
+      camera.position.y = 0;
+      camera.lookAt(0, 0, 0);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(width, height, true);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      return true;
     };
     
     const { scale, distance } = calculateOptimalFit();
-    
-    // Apply scale and position
-    model.scene.scale.set(scale, scale, scale);
-    model.scene.position.sub(center.multiplyScalar(scale));
+
+    // GLB origin is the bottom of the phone; pivot around the visual center.
+    const pivot = new THREE.Group();
+    model.scene.position.copy(center).negate();
+    pivot.add(model.scene);
+    pivot.scale.setScalar(scale);
+    scene.add(pivot);
     
     // Position camera
     camera.position.z = distance;
@@ -141,52 +213,68 @@ export async function initDeviceShowcase(
     camera.aspect = container.clientWidth / container.clientHeight;
     camera.updateProjectionMatrix();
     
-    renderer.domElement.style.width = '100%';
-    renderer.domElement.style.height = '100%';
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.left = '0';
+    renderer.domElement.style.top = '0';
+    renderer.domElement.style.zIndex = '1';
+    renderer.domElement.style.opacity = '0';
+    renderer.domElement.style.transition = 'opacity 320ms ease';
+    renderer.domElement.style.display = 'block';
+    if (getComputedStyle(container).position === 'static') {
+      container.style.position = 'relative';
+    }
     container.appendChild(renderer.domElement);
-    
-    scene.add(model.scene);
 
-    // Load screenshot texture
-    console.log('Loading screenshot texture:', screenshot);
-    const textureLoader = new THREE.TextureLoader();
-    const screenshotTexture = await textureLoader.loadAsync(screenshot);
-    console.log('Screenshot texture loaded');
-    
-    // Find screen mesh and apply texture
-    let screenFound = false;
-    model.scene.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.name === 'screen') {
-        console.log('Found screen mesh:', child);
-        screenFound = true;
-        child.material = new THREE.MeshBasicMaterial({
-          map: screenshotTexture,
-        });
+    let screenCompositor: ScreenCompositor | null = null;
+    await syncDeviceTextures(model.scene, device, cacheDeviceTextures);
+    const screenMaterial = findScreenMaterial(model.scene);
+    if (screenMaterial) {
+      try {
+        console.log('Compositing screenshot onto device screen:', screenshot, screenMaterial.name);
+        screenCompositor = createScreenCompositor(screenMaterial, model.scene);
+        screenCompositor.apply(await loadImage(screenshotUrl));
+      } catch (error) {
+        console.warn('Could not apply screenshot to the device screen', error);
+        screenCompositor = null;
       }
-    });
-
-    if (!screenFound) {
-      console.warn('No screen mesh found in the model. Make sure the model has a mesh named "screen"');
+    } else {
+      console.warn('No screen or wallpaper material was found on the model');
     }
 
-    // Add some light to the scene
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    let environmentHandle: { dispose: () => void } | null = null;
+    try {
+      environmentHandle = await applyEnvironmentMap(
+        renderer,
+        scene,
+        environmentUrl,
+        model.scene
+      );
+      console.log('Loaded environment map:', environment);
+    } catch (error) {
+      console.warn('Could not load environment map; falling back to basic lights', error);
+    }
+
+    // Keep lights modest so the HDRI provides most of the look
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.08);
     scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(5, 5, 5);
+    const directionalLight = new THREE.DirectionalLight(0xfff2e0, 0.22);
+    directionalLight.position.set(4, 6, 5);
     scene.add(directionalLight);
 
     // Animation loop
-    let animationFrameId: number;
+    let animationFrameId = 0;
     // Set base tilt
     let rotX = baseTilt.x || 0;
     let rotY = baseTilt.y || 0;
+    let rotZ = baseTilt.z || 0;
     let mouseRotationX = 0;
     let mouseRotationY = 0;
     let currentRotationX = rotX;
     let currentRotationY = rotY;
+    let currentRotationZ = rotZ;
     let velocityX = 0;
     let velocityY = 0;
+    let velocityZ = 0;
 
     // Spring physics constants
     const springStrength = spring.strength || 0.05;
@@ -208,42 +296,119 @@ export async function initDeviceShowcase(
 
     window.addEventListener('mousemove', handleMouseMove);
 
+    const revealLiveCanvas = () => {
+      renderer.domElement.style.opacity = '1';
+    };
+
+    const hidePoster = () => {
+      if (posterEl) {
+        posterEl.style.opacity = '0';
+        if (createdPoster) {
+          window.setTimeout(() => {
+            posterEl?.remove();
+            posterEl = null;
+          }, 360);
+        }
+      }
+      onReady?.();
+    };
+
+    const restorePoster = () => {
+      if (!posterEl || createdPoster) return;
+      posterEl.style.opacity = '';
+      posterEl.style.visibility = '';
+      posterEl.style.display = '';
+    };
+
+    const captureFirstFrame = async () => {
+      try {
+        const blob = await captureRendererFrame(renderer.domElement);
+        if (cachePoster) {
+          await setCachedPoster(cacheKey, blob);
+        }
+        const fileName = posterFileName({
+          device,
+          screenshot,
+          fov,
+          zoom,
+          tilt: baseTilt,
+          environment,
+        });
+        await persistPosterToDevServer(fileName, blob);
+        onPosterCapture?.(blob);
+      } catch (error) {
+        console.warn('Could not capture device poster frame', error);
+      }
+    };
+
+    pivot.rotation.set(rotX, rotY, rotZ);
+
+    let liveStarted = false;
+    let posterHideTimer = 0;
+    const startLive = () => {
+      if (liveStarted || !applyFit()) return;
+      liveStarted = true;
+      renderer.render(scene, camera);
+      revealLiveCanvas();
+      animate();
+      posterHideTimer = window.setTimeout(() => {
+        hidePoster();
+        void captureFirstFrame();
+      }, 400);
+    };
+
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
       
       // Calculate target rotation by adding mouse movement to base tilt
       const targetRotationX = rotX + mouseRotationX;
       const targetRotationY = rotY + mouseRotationY;
+      const targetRotationZ = rotZ;
       
       if (spring.enabled) {
-        // Calculate spring forces
         const forceX = (targetRotationX - currentRotationX) * springStrength;
         const forceY = (targetRotationY - currentRotationY) * springStrength;
+        const forceZ = (targetRotationZ - currentRotationZ) * springStrength;
         
-        // Update velocities with forces (F = ma)
         velocityX += forceX / mass;
         velocityY += forceY / mass;
+        velocityZ += forceZ / mass;
         
-        // Apply damping
         velocityX *= damping;
         velocityY *= damping;
+        velocityZ *= damping;
         
-        // Update positions
         currentRotationX += velocityX;
         currentRotationY += velocityY;
+        currentRotationZ += velocityZ;
       } else {
-        // Direct interpolation when spring is disabled
         currentRotationX += (targetRotationX - currentRotationX) * 0.1;
         currentRotationY += (targetRotationY - currentRotationY) * 0.1;
+        currentRotationZ += (targetRotationZ - currentRotationZ) * 0.1;
       }
       
-      // Apply rotations
-      model.scene.rotation.x = currentRotationX;
-      model.scene.rotation.y = currentRotationY;
+      pivot.rotation.x = currentRotationX;
+      pivot.rotation.y = currentRotationY;
+      pivot.rotation.z = currentRotationZ;
       
       renderer.render(scene, camera);
     };
-    animate();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        if (!liveStarted) startLive();
+        else applyFit();
+      });
+      resizeObserver.observe(container);
+    }
+    startLive();
+
+    renderer.domElement.addEventListener('webglcontextlost', (event) => {
+      event.preventDefault();
+      restorePoster();
+      renderer.domElement.style.opacity = '0';
+    });
 
     // Handle scroll tilt
     let scrollHandler: (() => void) | undefined;
@@ -251,7 +416,7 @@ export async function initDeviceShowcase(
       scrollHandler = () => {
         const scrollY = window.scrollY;
         const rotation = scrollY * 0.0005;
-        model.scene.rotation.y = rotation + currentRotationY;
+        pivot.rotation.y = rotation + currentRotationY;
       };
       window.addEventListener('scroll', scrollHandler);
     }
@@ -259,21 +424,27 @@ export async function initDeviceShowcase(
     return {
       destroy: () => {
         cancelAnimationFrame(animationFrameId);
+        window.clearTimeout(posterHideTimer);
+        resizeObserver?.disconnect();
         if (scrollHandler) {
           window.removeEventListener('scroll', scrollHandler);
         }
         window.removeEventListener('mousemove', handleMouseMove);
-        container.removeChild(renderer.domElement);
+        if (createdPoster) {
+          posterEl?.remove();
+        } else {
+          restorePoster();
+        }
+        if (renderer.domElement.parentNode === container) {
+          container.removeChild(renderer.domElement);
+        }
         renderer.dispose();
+        screenCompositor?.dispose();
+        environmentHandle?.dispose();
       },
       updateScreenshot: async (url: string) => {
-        const newTexture = await textureLoader.loadAsync(url);
-        model.scene.traverse((child) => {
-          if (child instanceof THREE.Mesh && child.name === 'screen') {
-            child.material.map = newTexture;
-            child.material.needsUpdate = true;
-          }
-        });
+        if (!screenCompositor) return;
+        screenCompositor.apply(await loadImage(publicUrl(url)));
       },
       setScrollTilt: (enabled: boolean) => {
         if (scrollHandler) {
@@ -283,7 +454,7 @@ export async function initDeviceShowcase(
           scrollHandler = () => {
             const scrollY = window.scrollY;
             const rotation = scrollY * 0.0005;
-            model.scene.rotation.y = rotation + currentRotationY;
+            pivot.rotation.y = rotation + currentRotationY;
           };
           window.addEventListener('scroll', scrollHandler);
         }
@@ -294,12 +465,15 @@ export async function initDeviceShowcase(
         if (config.damping !== undefined) spring.damping = config.damping;
         if (config.mass !== undefined) spring.mass = config.mass;
       },
-      setBaseTilt: (tilt: { x?: number; y?: number }) => {
+      setBaseTilt: (tilt: { x?: number; y?: number; z?: number }) => {
         if (tilt.x !== undefined) {
           rotX = tilt.x;
         }
         if (tilt.y !== undefined) {
           rotY = tilt.y;
+        }
+        if (tilt.z !== undefined) {
+          rotZ = tilt.z;
         }
       },
       setFOV: (newFov: number) => {
@@ -327,6 +501,13 @@ export async function initDeviceShowcase(
       }
     };
   } catch (error) {
+    if (createdPoster) {
+      posterEl?.remove();
+    } else if (posterEl) {
+      posterEl.style.opacity = '';
+      posterEl.style.visibility = '';
+      posterEl.style.display = '';
+    }
     console.error('Error loading model:', error);
     throw error;
   }
