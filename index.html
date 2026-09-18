@@ -160,6 +160,59 @@
 
     .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
+    .npm-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 16px;
+      max-width: 460px;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      text-decoration: none;
+      background: var(--bg-2);
+      color: inherit;
+    }
+
+    .npm-card:hover {
+      border-color: rgba(228, 255, 61, 0.45);
+    }
+
+    .npm-card-kicker {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .npm-card strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 18px;
+      letter-spacing: -0.03em;
+    }
+
+    .npm-card-meta {
+      display: block;
+      margin-top: 4px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .npm-card-meta b { color: var(--fg); font-weight: 600; }
+
+    .npm-spark {
+      width: 140px;
+      height: 48px;
+      flex: 0 0 auto;
+      overflow: visible;
+    }
+
+    .npm-spark[hidden] { display: none; }
+
     .fine {
       margin-top: 18px;
       font-size: 13px;
@@ -311,6 +364,7 @@
     @media (max-width: 860px) {
       .hero, .features, .split, footer { grid-template-columns: 1fr; }
       .nav-links a:not(.btn) { display: none; }
+      .npm-card { max-width: none; }
       .hero {
         padding-top: 28px;
         min-height: 0;
@@ -330,8 +384,8 @@
       }
     }
   </style>
-  <script type="module" crossorigin src="/Screenframe3D/assets/main-c1fa260f.js"></script>
-  <link rel="modulepreload" crossorigin href="/Screenframe3D/assets/initDeviceShowcase-d3574f3e.js">
+  <script type="module" crossorigin src="/Screenframe3D/assets/main-14a38d75.js"></script>
+  <link rel="modulepreload" crossorigin href="/Screenframe3D/assets/devices-29709e0b.js">
 </head>
 <body>
   <div class="wrap">
@@ -344,6 +398,7 @@
         <a href="#product">Product</a>
         <a href="#how">How it works</a>
         <a href="./playground.html">Playground</a>
+        <a href="https://www.npmjs.com/package/screenframe3d" target="_blank" rel="noopener">npm</a>
         <a class="btn btn-accent" href="#how">Get the snippet</a>
       </div>
     </nav>
@@ -359,6 +414,20 @@
           <a class="btn btn-accent" href="#how">See how it’s done</a>
           <a class="btn btn-ghost" href="./playground.html">Open the playground</a>
         </div>
+        <a
+          class="npm-card"
+          id="npm-card"
+          href="https://www.npmjs.com/package/screenframe3d"
+          target="_blank"
+          rel="noopener"
+        >
+          <span>
+            <span class="npm-card-kicker">Package</span>
+            <strong>View on npm</strong>
+            <span class="npm-card-meta" id="npm-card-meta">screenframe3d</span>
+          </span>
+          <svg class="npm-spark" id="npm-spark" viewBox="0 0 140 48" aria-hidden="true" hidden></svg>
+        </a>
         <p class="fine">The device you are seeing is powered by Screenframe3D, running live in browser.</p>
       </div>
       <div class="stage">
@@ -426,7 +495,7 @@
             Everything on this page is powered by HTML and a few lines of Screenframe3D.
           </p>
           <p class="section-kicker">
-            S3D's 3D is powered by <a href="https://threejs.org">Three.js</a> and device models from <a href="https://sketchfab.com/search?features=downloadable&q=iphone&type=models">Sketchfab</a>.
+            S3D's 3D is powered by <a href="https://threejs.org">Three.js</a> and device models from the incredible artists at <a href="https://sketchfab.com/search?features=downloadable&q=iphone&type=models">Sketchfab</a>.
           </p>
         </div>
         <pre><span class="kw">import</span> { <span class="fn">DeviceShowcase</span> } from <span class="str">'screenframe3d/react'</span>
@@ -444,11 +513,54 @@
     </section>
 
     <footer>
-      <div>Screenframe3D · by Nick Vander Woude | <a href="https://github.com/nvande">Github</a></div>
+      <div>Screenframe3D · by Nick Vander Woude | <a href="https://github.com/nvande">Github</a> · <a href="https://www.npmjs.com/package/screenframe3d">npm</a></div>
       <div><a href="./playground.html">Playground with customization</a></div>
     </footer>
   </div>
 
+  <script>
+    (function () {
+      var meta = document.getElementById('npm-card-meta');
+      var svg = document.getElementById('npm-spark');
+      if (!meta || !svg) return;
+
+      fetch('https://api.npmjs.org/downloads/range/last-month/screenframe3d')
+        .then(function (res) {
+          if (!res.ok) throw new Error('npm downloads ' + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          var days = (data && data.downloads) || [];
+          var values = days.map(function (row) { return row.downloads || 0; });
+          var total = values.reduce(function (sum, n) { return sum + n; }, 0);
+          meta.innerHTML = '<b>' + total.toLocaleString() + '</b> downloads in the last 30 days';
+          if (!values.length) return;
+
+          var w = 140;
+          var h = 48;
+          var pad = 2;
+          var max = Math.max(1, Math.max.apply(null, values));
+          var step = (w - pad * 2) / Math.max(values.length - 1, 1);
+          var pts = values.map(function (v, i) {
+            var x = pad + i * step;
+            var y = h - pad - (v / max) * (h - pad * 2);
+            return x.toFixed(1) + ',' + y.toFixed(1);
+          });
+          var line = 'M ' + pts.join(' L ');
+          var last = pts[pts.length - 1];
+          var fill = 'M ' + pts[0] + ' L ' + pts.join(' L ') +
+            ' L ' + (w - pad) + ',' + (h - pad) + ' L ' + pad + ',' + (h - pad) + ' Z';
+          svg.innerHTML =
+            '<path d="' + fill + '" fill="rgba(228,255,61,0.14)"></path>' +
+            '<path d="' + line + '" fill="none" stroke="#e4ff3d" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"></path>' +
+            '<circle cx="' + last.split(',')[0] + '" cy="' + last.split(',')[1] + '" r="2.4" fill="#e4ff3d"></circle>';
+          svg.removeAttribute('hidden');
+        })
+        .catch(function () {
+          meta.textContent = 'screenframe3d on npm';
+        });
+    })();
+  </script>
   
 </body>
 </html>
