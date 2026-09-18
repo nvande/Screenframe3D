@@ -1,1 +1,0 @@
-import{i as o}from"./devices-29709e0b.js";const e=window.__screenframeLook;o({container:document.getElementById("hero-device"),screenshot:e.screenshot,device:e.device,publicBase:"/Screenframe3D/",scrollTilt:!0,tiltEnabled:!0,fov:e.fov,zoom:e.zoom,spring:{enabled:!0,strength:.045,damping:.9,mass:2.2},baseTilt:e.tilt});
