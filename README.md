@@ -6,7 +6,7 @@
 
 ---
 
-## ✨ Features
+## Features
 
 - 📱 Pre-installed, optimized 3D device models (e.g. iPhone 14)  
 - 🖼️ Replace screen texture with your own screenshot dynamically  
@@ -17,7 +17,7 @@
 
 ---
 
-## 📦 Installation
+## Installation
 
 ### Core JS Only (Vanilla)
 ```bash
@@ -31,9 +31,9 @@ npm install screenframe3d three react react-dom
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### 🔹 Vanilla JS
+### Vanilla JS
 
 ```html
 <div id="device-container"></div>
@@ -49,7 +49,7 @@ npm install screenframe3d three react react-dom
 </script>
 ```
 
-### 🔹 React
+### React
 
 ```jsx
 import DeviceShowcase from 'screenframe3d/react';
@@ -63,7 +63,7 @@ import DeviceShowcase from 'screenframe3d/react';
 
 ---
 
-## ⚙️ Configuration Options
+## Configuration Options
 
 These options can be passed to either `initDeviceShowcase()` or the React component:
 
@@ -78,7 +78,7 @@ These options can be passed to either `initDeviceShowcase()` or the React compon
 
 ---
 
-## 🖼 Supported Devices
+## Supported Devices
 
 | Device     | Identifier   | Notes            |
 |------------|--------------|------------------|
@@ -88,7 +88,7 @@ More devices coming soon.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 screenframe3d/
@@ -111,7 +111,7 @@ screenframe3d/
 
 ---
 
-## 🧪 Development
+## Development
 
 ```bash
 npm install
@@ -121,7 +121,7 @@ npm run build    # Build core and React bundles
 
 ---
 
-## 🔌 Framework Integration
+## Framework Integration
 
 You can use `initDeviceShowcase()` in any frontend environment — Vue, Svelte, Angular, etc. Simply pass a DOM element and screenshot URL.
 
@@ -137,20 +137,14 @@ You can use `initDeviceShowcase()` in any frontend environment — Vue, Svelte, 
 
 ---
 
-## 📄 License
+## License
 
 MIT
 
 ---
 
-## 🙌 Acknowledgements
+## Acknowledgements
 
 - Built with [Three.js](https://threejs.org/)
 - GLB loading via `GLTFLoader`
 - Inspired by countless product pages with static mockups — now made dynamic
-
----
-
-## ⭐ Contributing
-
-Pull requests welcome. If you find this project useful, consider giving it a ⭐ on GitHub.
