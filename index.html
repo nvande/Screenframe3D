@@ -5,13 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Screenframe — Your product, on a real device</title>
   <script>
-    window.__screenframeLook = {
-      screenshot: '/screenshots/screenframe-app.png',
-      device: 'apple/iphone-14-pro',
-      fov: 48,
-      zoom: 1.8,
-      tilt: { x: 0.12, y: -0.38, z: -0.06 }
+    window.__screenframeLooks = {
+      desktop: {
+        screenshot: '/screenshots/screenframe-app.png',
+        device: 'apple/iphone-14-pro',
+        fov: 48,
+        zoom: 1.8,
+        tilt: { x: 0.12, y: -0.38, z: -0.06 }
+      },
+      mobile: {
+        screenshot: '/screenshots/screenframe-app.png',
+        device: 'apple/iphone-14-pro',
+        fov: 48,
+        zoom: 1.8,
+        tilt: { x: 0, y: 0, z: 0 }
+      }
     };
+    window.__screenframeHeroPose = window.matchMedia('(max-width: 860px)').matches
+      ? 'mobile'
+      : 'desktop';
+    window.__screenframeLook = window.__screenframeLooks[window.__screenframeHeroPose];
+    document.documentElement.classList.add('hero-pose-' + window.__screenframeHeroPose);
   </script>
   <script src="./posters/boot.js"></script>
   <link rel="preload" as="fetch" href="./env/greenwich_park_1k.hdr" crossorigin>
@@ -247,12 +261,26 @@
       transition: opacity 320ms ease;
     }
 
-    #hero-device {
-      position: relative;
-      width: 100%;
-      height: 100%;
+    .hero-device {
+      position: absolute;
+      inset: 0;
       overflow: hidden;
       z-index: 1;
+    }
+
+    html.hero-pose-desktop .hero-desktop,
+    html.hero-pose-mobile .hero-mobile {
+      visibility: visible;
+      pointer-events: auto;
+      z-index: 1;
+    }
+
+    html.hero-pose-desktop .hero-mobile,
+    html.hero-pose-mobile .hero-desktop,
+    .hero-mobile {
+      visibility: hidden;
+      pointer-events: none;
+      z-index: 0;
     }
 
     .band {
@@ -264,6 +292,7 @@
       letter-spacing: 0.12em;
       text-transform: uppercase;
       overflow: hidden;
+      container-type: inline-size;
     }
 
     .band-track {
@@ -273,20 +302,19 @@
 
     .band-copy {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       justify-content: center;
-      gap: 12px 48px;
-    }
-
-    .band-copy-loop {
-      display: none;
+      gap: 48px;
+      width: max-content;
+      animation: band-reel 22s linear infinite alternate;
     }
 
     .band span { white-space: nowrap; }
     .band b { color: var(--fg); font-weight: 600; }
 
     @keyframes band-reel {
-      to { transform: translateX(-50%); }
+      from { transform: translateX(max(0px, calc((100% - 100cqi) / 2))); }
+      to { transform: translateX(min(0px, calc((100cqi - 100%) / 2))); }
     }
 
     .section { padding: 96px 0; }
@@ -361,12 +389,14 @@
     .str { color: #9ad4ff; }
 
     .note {
-      margin-top: 16px;
+      margin: 16px 0 0;
       padding: 14px 16px;
       border-left: 3px solid var(--accent);
       color: var(--muted);
       font-size: 14px;
     }
+
+    .note a { color: var(--fg); }
 
     footer {
       border-top: 1px solid var(--line);
@@ -401,46 +431,18 @@
       h1 {
         font-size: clamp(36px, 11vw, 56px);
       }
-      .band {
-        white-space: nowrap;
-      }
-      .band-track {
-        display: inline-flex;
-        width: max-content;
-        justify-content: flex-start;
-        animation: band-reel 42s linear infinite;
-      }
-      .band-copy {
-        display: inline-flex;
-        flex-wrap: nowrap;
-        justify-content: flex-start;
-        gap: 48px;
-        padding-right: 48px;
-      }
-      .band-copy-loop {
-        display: inline-flex;
-      }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .band-track {
-        animation: none;
-        display: flex;
-        width: auto;
-        justify-content: center;
-      }
       .band-copy {
+        animation: none;
         flex-wrap: wrap;
-        justify-content: center;
-        padding-right: 0;
-      }
-      .band-copy-loop {
-        display: none;
+        gap: 12px 48px;
       }
     }
   </style>
-  <script type="module" crossorigin src="/Screenframe3D/assets/main-c0b6201b.js"></script>
-  <link rel="modulepreload" crossorigin href="/Screenframe3D/assets/devices-1de70bb6.js">
+  <script type="module" crossorigin src="/Screenframe3D/assets/main-3b044901.js"></script>
+  <link rel="modulepreload" crossorigin href="/Screenframe3D/assets/devices-880334fa.js">
 </head>
 <body>
   <div class="wrap">
@@ -450,7 +452,6 @@
         Screenframe3D
       </a>
       <div class="nav-links">
-        <a href="#product">Product</a>
         <a href="#how">How it works</a>
         <a href="./playground.html">Playground</a>
         <a href="https://www.npmjs.com/package/screenframe3d" target="_blank" rel="noopener">npm</a>
@@ -486,7 +487,7 @@
         <p class="fine">The device you are seeing is powered by Screenframe3D, running live in browser.</p>
       </div>
       <div class="stage">
-        <div id="hero-device">
+        <div id="hero-desktop" class="hero-device hero-desktop">
           <img
             class="screenframe3d-poster"
             alt=""
@@ -494,14 +495,28 @@
             decoding="async"
             fetchpriority="high"
           >
-          <script>
-            (function () {
-              var img = document.querySelector('#hero-device .screenframe3d-poster');
-              var src = window.screenframeMatchPoster && window.screenframeMatchPoster(window.__screenframeLook);
-              if (img && src) img.src = src;
-            })();
-          </script>
         </div>
+        <div id="hero-mobile" class="hero-device hero-mobile">
+          <img
+            class="screenframe3d-poster"
+            alt=""
+            draggable="false"
+            decoding="async"
+            fetchpriority="high"
+          >
+        </div>
+        <script>
+          (function () {
+            var looks = window.__screenframeLooks || {};
+            var match = window.screenframeMatchPoster;
+            var desktop = document.querySelector('#hero-desktop .screenframe3d-poster');
+            var mobile = document.querySelector('#hero-mobile .screenframe3d-poster');
+            var desktopSrc = match && match(looks.desktop);
+            var mobileSrc = match && match(looks.mobile);
+            if (desktop && desktopSrc) desktop.src = desktopSrc;
+            if (mobile && mobileSrc) mobile.src = mobileSrc;
+          })();
+        </script>
       </div>
     </section>
   </div>
@@ -509,22 +524,16 @@
   <div class="band">
     <div class="band-track">
       <div class="band-copy">
-        <span><b>Your screenshot</b> on the glass</span>
+        <span><b>Your screenshot</b> on the display</span>
         <span><b>Pre-baked image</b> backups</span>
         <span><b>HDRI lighting</b> on glass and metal</span>
-        <span><b>Real 3D phones</b> not a flat PNG</span>
-      </div>
-      <div class="band-copy band-copy-loop" aria-hidden="true">
-        <span><b>Your screenshot</b> on the glass</span>
-        <span><b>Pre-baked image</b> backups</span>
-        <span><b>HDRI lighting</b> on glass and metal</span>
-        <span><b>Real 3D phones</b> not a flat PNG</span>
+        <span><b>Real 3D devices</b> — not a flat PNG</span>
       </div>
     </div>
   </div>
 
   <div class="wrap">
-    <section class="section" id="product">
+    <section class="section" id="how">
       <h2>Built for launch pages, not galleries.</h2>
       <p class="section-kicker">
         Static PNGs of phones go stale the moment your UI changes. S3D keeps your designers focused on what matters: the app, not the device.
@@ -538,17 +547,17 @@
         <article class="card">
           <span class="index">02</span>
           <h3>Your screenshot, on the glass</h3>
-          <p>Point it at an image and S3D composites it onto the display — corners, island, and all.</p>
+          <p>Pick an image and S3D composites it directly onto the display. Supply your own device model in .GLB format and S3D finds the screen edges automatically.</p>
         </article>
         <article class="card">
           <span class="index">03</span>
           <h3>Clean flat image fallback.</h3>
-          <p>When you build your app, S3D automatically takes a snapshot of exactly how the final render will look. Loading feels instant and models fall back to a perfect image if they fail to render.</p>
+          <p>With Vite, S3D automatically snapshots a perfect final render and saves it. Loading feels instant and models fall back to a perfect still image if rendering fails.</p>
         </article>
       </div>
     </section>
 
-    <section class="section" id="how">
+    <section class="section">
       <div class="split">
         <div>
           <h2>The <I>only</I> free-to-use 3D device mockup library.</h2>
@@ -559,17 +568,21 @@
             S3D's 3D is powered by <a href="https://threejs.org">Three.js</a> and device models from the incredible artists at <a href="https://sketchfab.com/search?features=downloadable&q=iphone&type=models">Sketchfab</a>.
           </p>
         </div>
-        <pre><span class="kw">import</span> { <span class="fn">DeviceShowcase</span> } from <span class="str">'screenframe3d/react'</span>
+        <div>
+          <pre><span class="kw">import</span> { <span class="fn">DeviceShowcase</span> } from <span class="str">'screenframe3d/react'</span>
 
 &lt;<span class="fn">DeviceShowcase</span>
   screenshot=<span class="str">"/screenshot.png"</span>
-  device=<span class="str">"apple/iphone-5s"</span>
-  zoom={<span class="str">1.8</span>}
-  baseTilt={{ x: <span class="str">0.12</span>, y: <span class="str">-0.38</span>, z: <span class="str">-0.06</span> }}
+  device=<span class="str">"apple/iphone-12-pro"</span>
 /&gt;
 
 <span class="kw">import</span> { <span class="fn">screenframe</span> } from <span class="str">'screenframe3d/vite'</span>
 <span class="kw">export default</span> { plugins: [<span class="fn">screenframe</span>()] }</pre>
+          <p class="note">
+            Other options include camera angles, motion controls, lighting configuration, and environment selection —
+            try them in the <a href="./playground.html">playground</a>.
+          </p>
+        </div>
       </div>
     </section>
 
