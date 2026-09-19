@@ -264,11 +264,30 @@
       letter-spacing: 0.12em;
       text-transform: uppercase;
       overflow: hidden;
-      white-space: nowrap;
     }
 
-    .band span { margin-right: 48px; }
+    .band-track {
+      display: flex;
+      justify-content: center;
+    }
+
+    .band-copy {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px 48px;
+    }
+
+    .band-copy-loop {
+      display: none;
+    }
+
+    .band span { white-space: nowrap; }
     .band b { color: var(--fg); font-weight: 600; }
+
+    @keyframes band-reel {
+      to { transform: translateX(-50%); }
+    }
 
     .section { padding: 96px 0; }
 
@@ -382,10 +401,46 @@
       h1 {
         font-size: clamp(36px, 11vw, 56px);
       }
+      .band {
+        white-space: nowrap;
+      }
+      .band-track {
+        display: inline-flex;
+        width: max-content;
+        justify-content: flex-start;
+        animation: band-reel 42s linear infinite;
+      }
+      .band-copy {
+        display: inline-flex;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        gap: 48px;
+        padding-right: 48px;
+      }
+      .band-copy-loop {
+        display: inline-flex;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .band-track {
+        animation: none;
+        display: flex;
+        width: auto;
+        justify-content: center;
+      }
+      .band-copy {
+        flex-wrap: wrap;
+        justify-content: center;
+        padding-right: 0;
+      }
+      .band-copy-loop {
+        display: none;
+      }
     }
   </style>
-  <script type="module" crossorigin src="/Screenframe3D/assets/main-a23f88fa.js"></script>
-  <link rel="modulepreload" crossorigin href="/Screenframe3D/assets/devices-9d2fe3db.js">
+  <script type="module" crossorigin src="/Screenframe3D/assets/main-c0b6201b.js"></script>
+  <link rel="modulepreload" crossorigin href="/Screenframe3D/assets/devices-1de70bb6.js">
 </head>
 <body>
   <div class="wrap">
@@ -452,14 +507,20 @@
   </div>
 
   <div class="band">
-    <span><b>Your screenshot</b> on the glass</span>
-    <span><b>Pre-baked image</b> backups</span>
-    <span><b>HDRI lighting</b> on glass and metal</span>
-    <span><b>Real 3D phones</b> not a flat PNG</span>
-    <span><b>Your screenshot</b> on the glass</span>
-    <span><b>Pre-baked image</b> backups</span>
-    <span><b>HDRI lighting</b> on glass and metal</span>
-    <span><b>Real 3D phones</b> not a flat PNG</span>
+    <div class="band-track">
+      <div class="band-copy">
+        <span><b>Your screenshot</b> on the glass</span>
+        <span><b>Pre-baked image</b> backups</span>
+        <span><b>HDRI lighting</b> on glass and metal</span>
+        <span><b>Real 3D phones</b> not a flat PNG</span>
+      </div>
+      <div class="band-copy band-copy-loop" aria-hidden="true">
+        <span><b>Your screenshot</b> on the glass</span>
+        <span><b>Pre-baked image</b> backups</span>
+        <span><b>HDRI lighting</b> on glass and metal</span>
+        <span><b>Real 3D phones</b> not a flat PNG</span>
+      </div>
+    </div>
   </div>
 
   <div class="wrap">

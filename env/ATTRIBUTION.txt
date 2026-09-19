@@ -1,3 +1,11 @@
 greenwich_park_1k.hdr
 CC0 — Poly Haven
 https://polyhaven.com/a/greenwich_park
+
+studio_small_08_1k.hdr
+CC0 — Poly Haven
+https://polyhaven.com/a/studio_small_08
+
+venice_sunset_1k.hdr
+CC0 — Poly Haven
+https://polyhaven.com/a/venice_sunset
